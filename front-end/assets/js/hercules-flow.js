@@ -399,7 +399,7 @@ function isPointInPolygon(point, polygon) {
                         const wasInside = isPointInPolygon(previousPosition, sensor.polygon);
                         if (!wasInside && isInside) {
                             const bounds = getSensorBounds(sensor);
-                            console.log(`Patient ${patient.patID} entered sensor ${sensor.name}.`);
+                            //console.log(`Patient ${patient.patID} entered sensor ${sensor.name}.`);
                             if (simulationDebug) {
                                 console.log(`    - They moved from an outside position at (${previousPosition.join(', ')}) to an inside position at (${currentPosition.join(', ')}).`);
                                 console.log(`    - The sensor area is from x=${bounds.minX} to x=${bounds.maxX} and y=${bounds.minY} to y=${bounds.maxY}.`);
@@ -421,7 +421,7 @@ function isPointInPolygon(point, polygon) {
                         const wasInside = isPointInPolygon(previousPosition, sensor.polygon);
                         if (wasInside && !isInside) {
                             const bounds = getSensorBounds(sensor);
-                            console.log(`Patient ${patient.patID} left sensor ${sensor.name}.`);
+                            //console.log(`Patient ${patient.patID} left sensor ${sensor.name}.`);
                             if (simulationDebug) {
                                 console.log(`    - They were inside at (${previousPosition.join(', ')}) and moved outside to (${currentPosition.join(', ')}).`);
                                 console.log(`    - The sensor area is from x=${bounds.minX} to x=${bounds.maxX} and y=${bounds.minY} to y=${bounds.maxY}.`);
