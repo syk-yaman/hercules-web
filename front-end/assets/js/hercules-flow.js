@@ -629,6 +629,18 @@ function isPointInPolygon(point, polygon) {
                         ...tripProps,
                         currentTime,
                     });
+
+                    const scatterplotLayer = new deck.ScatterplotLayer({
+                        id: 'scatterplot-layer',
+                        data: mapData?.paths.flatMap(p => p.path.map((point, i) => ({ position: point, timestamp: p.timestamps[i] }))),
+                        getPosition: d => d.position,
+                        getRadius: d => d.timestamp,
+                        getFillColor: [255, 0, 0], // color of the points
+                        radiusScale: 0.3,
+                        radiusMinPixels: 1,
+                        radiusMaxPixels: 100
+                    });
+
                     const bitmapLayer = new deck.BitmapLayer({
                         ...bitmapProps
                     });
@@ -647,7 +659,7 @@ function isPointInPolygon(point, polygon) {
                     //  });
 
                     mainDeck.setProps({
-                        layers: [bitmapLayer, tripsLayer, sensorLayer, textLayer],
+                        layers: [bitmapLayer, tripsLayer, scatterplotLayer, sensorLayer, textLayer],
                     });
 
                     // Check for patient-sensor collision
