@@ -545,6 +545,15 @@ function isPointInPolygon(point, polygon) {
                 getAlignmentBaseline: 'center'
             };
 
+            const textLayerPatientsOptions = {
+                id: 'text-layer',
+                data: mapData?.paths.flatMap(p => p.path.map((point, i) => ({ position: point, index: i }))),
+                getPosition: d => d.position,
+                getText: d => `${d.index}`,
+                getSize: 30,
+                getColor: [0, 0, 255],
+            };
+
             const iconProps = {
                 id: 'IconLayer',
                 data: mapData?.paths,
@@ -641,6 +650,10 @@ function isPointInPolygon(point, polygon) {
                         radiusMaxPixels: 100
                     });
 
+                    const textLayerPatients = new deck.TextLayer({
+                        ...textLayerPatientsOptions
+                    });
+
                     const bitmapLayer = new deck.BitmapLayer({
                         ...bitmapProps
                     });
@@ -659,7 +672,7 @@ function isPointInPolygon(point, polygon) {
                     //  });
 
                     mainDeck.setProps({
-                        layers: [bitmapLayer, tripsLayer, scatterplotLayer, sensorLayer, textLayer],
+                        layers: [bitmapLayer, tripsLayer, textLayerPatients, scatterplotLayer, sensorLayer, textLayer],
                     });
 
                     // Check for patient-sensor collision
@@ -703,6 +716,9 @@ function isPointInPolygon(point, polygon) {
                         }),
                         new deck.TextLayer({
                             ...textLayerOptions
+                        }),
+                        new deck.TextLayer({
+                            ...textLayerPatientsOptions
                         })
                         //new deck.IconLayer({
                         //    iconProps
