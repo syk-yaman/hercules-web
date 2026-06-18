@@ -37,10 +37,10 @@ const baseURL = url.toString();
 
 // Sensor definitions
 const sensors = [
-    { id: 1, rect: { x: 0.05525, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S1', enteredPatients: new Set(), color: [255, 140, 0] },
-    { id: 2, rect: { x: 0.06535, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S2', enteredPatients: new Set(), color: [0, 128, 255] },
-    { id: 3, rect: { x: 0.07565, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S3', enteredPatients: new Set(), color: [255, 0, 128] },
-    { id: 4, rect: { x: 0.08585, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S4', enteredPatients: new Set(), color: [128, 255, 0] }
+    { id: 1, rect: { x: 0.00225, y: 0.14817, width: 0.0852, height: -0.087 }, name: 'S1', enteredPatients: new Set(), color: [255, 140, 0] },
+    //{ id: 2, rect: { x: 0.06535, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S2', enteredPatients: new Set(), color: [0, 128, 255] },
+    //{ id: 3, rect: { x: 0.07565, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S3', enteredPatients: new Set(), color: [255, 0, 128] },
+    //{ id: 4, rect: { x: 0.08585, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S4', enteredPatients: new Set(), color: [128, 255, 0] }
 ].map(sensor => {
     const { x, y, width, height } = sensor.rect;
     return {
