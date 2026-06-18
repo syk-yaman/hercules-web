@@ -34,6 +34,7 @@ var isHoveringOnSlider = false;
 var url = new URL("https://hercules.cetools.org/v1/");
 url.port = '443';
 const baseURL = url.toString();
+const maxPatientsLimit = 50; //For simulation purposes.
 
 // Sensor definitions
 const sensors = [
@@ -316,7 +317,12 @@ function isPointInPolygon(point, polygon) {
                 }
             })
                 .then(response => response.json())
-                .then(data => callback(data))
+                .then(data => {
+                    if (data && data.paths) {
+                        data.paths = data.paths.slice(0, maxPatientsLimit);
+                    }
+                    callback(data);
+                })
                 .catch(error => errorCallback(error, function () { }));
         }
 
