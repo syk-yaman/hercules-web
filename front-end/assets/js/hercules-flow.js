@@ -37,11 +37,26 @@ const baseURL = url.toString();
 
 // Sensor definitions
 const sensors = [
-    { id: 1, center: [0.05625, 0.07517], radius: 1120, name: 'S1', enteredPatients: new Set(), color: [255, 140, 0] },
-    { id: 2, center: [0.06635, 0.07517], radius: 60, name: 'S2', enteredPatients: new Set(), color: [0, 128, 255] },
-    { id: 3, center: [0.07665, 0.07517], radius: 25, name: 'S3', enteredPatients: new Set(), color: [255, 0, 128] },
-    { id: 4, center: [0.08685, 0.07517], radius: 35, name: 'S4', enteredPatients: new Set(), color: [128, 255, 0] }
-];
+    { id: 1, rect: { x: 0.05525, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S1', enteredPatients: new Set(), color: [255, 140, 0] },
+    { id: 2, rect: { x: 0.06535, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S2', enteredPatients: new Set(), color: [0, 128, 255] },
+    { id: 3, rect: { x: 0.07565, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S3', enteredPatients: new Set(), color: [255, 0, 128] },
+    { id: 4, rect: { x: 0.08585, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S4', enteredPatients: new Set(), color: [128, 255, 0] }
+].map(sensor => {
+    const { x, y, width, height } = sensor.rect;
+    return {
+        ...sensor,
+        polygon: [
+            [x, y],
+            [x + width, y],
+            [x + width, y + height],
+            [x, y + height]
+        ],
+        center: [
+            x + width / 2,
+            y + height / 2
+        ]
+    };
+});
 
 const INITIAL_VIEW_STATE = {
     latitude: 0.090,
@@ -59,6 +74,25 @@ const COLOR_RANGE = [
     [254, 173, 84],
     [209, 55, 78]
 ];
+
+function isPointInPolygon(point, polygon) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+
+    var x = point[0], y = point[1];
+
+    var inside = false;
+    for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        var xi = polygon[i][0], yi = polygon[i][1];
+        var xj = polygon[j][0], yj = polygon[j][1];
+
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+}
 
 (function ($) {
     'use strict';
@@ -433,12 +467,7 @@ const COLOR_RANGE = [
                 opacity: 0.5,
                 stroked: true,
                 filled: true,
-                radiusScale: 4,
-                radiusMinPixels: 50,
-                radiusMaxPixels: 200,
-                lineWidthMinPixels: 1,
-                getPosition: d => d.center,
-                getRadius: d => d.radius,
+                getPolygon: d => d.polygon,
                 getFillColor: d => d.color,
                 getLineColor: [255, 0, 0]
             };
@@ -543,7 +572,7 @@ const COLOR_RANGE = [
                         ...bitmapProps
                     });
 
-                    const sensorLayer = new deck.ScatterplotLayer({
+                    const sensorLayer = new deck.PolygonLayer({
                         ...sensorProps
                     });
 
@@ -566,11 +595,7 @@ const COLOR_RANGE = [
                             const patientPosition = patient.path[currentTime];
                             if (patientPosition) {
                                 sensors.forEach(sensor => {
-                                    const distance = Math.sqrt(
-                                        Math.pow(patientPosition[0] - sensor.center[0], 2) +
-                                        Math.pow(patientPosition[1] - sensor.center[1], 2)
-                                    );
-                                    if (distance < sensor.radius) {
+                                    if (isPointInPolygon(patientPosition, sensor.polygon)) {
                                         if (!sensor.enteredPatients.has(patient.patID)) {
                                             sensor.enteredPatients.add(patient.patID);
                                             console.log(`Patient ${patient.patID} entered ${sensor.name}. Total patients in ${sensor.name}: ${sensor.enteredPatients.size}`);
@@ -609,7 +634,7 @@ const COLOR_RANGE = [
                         new deck.BitmapLayer({
                             bitmapProps
                         }),
-                        new deck.ScatterplotLayer({
+                        new deck.PolygonLayer({
                             ...sensorProps
                         }),
                         new deck.TextLayer({
