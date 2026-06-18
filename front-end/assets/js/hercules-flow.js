@@ -35,8 +35,9 @@ var url = new URL("https://hercules.cetools.org/v1/");
 url.port = '443';
 const baseURL = url.toString();
 
-const maxPatientsLimit = 1; //For simulation purposes, -1 for no limit.
+const maxPatientsLimit = 2; //For simulation purposes, -1 for no limit.
 const simulation = true; //For simulation purposes, false for real-time data.
+const simulationDebug = false; //For simulation debugging.
 
 // Sensor definitions
 const sensors = [
@@ -399,9 +400,11 @@ function isPointInPolygon(point, polygon) {
                         if (!wasInside && isInside) {
                             const bounds = getSensorBounds(sensor);
                             console.log(`Patient ${patient.patID} entered sensor ${sensor.name}.`);
-                            //console.log(`    - They moved from an outside position at (${previousPosition.join(', ')}) to an inside position at (${currentPosition.join(', ')}).`);
-                            //console.log(`    - The sensor area is from x=${bounds.minX} to x=${bounds.maxX} and y=${bounds.minY} to y=${bounds.maxY}.`);
-                            //console.log(`    - The new position is inside because ${currentPosition[0]} is between ${bounds.minX} and ${bounds.maxX}, and ${currentPosition[1]} is between ${bounds.minY} and ${bounds.maxY}.`);
+                            if (simulationDebug) {
+                                console.log(`    - They moved from an outside position at (${previousPosition.join(', ')}) to an inside position at (${currentPosition.join(', ')}).`);
+                                console.log(`    - The sensor area is from x=${bounds.minX} to x=${bounds.maxX} and y=${bounds.minY} to y=${bounds.maxY}.`);
+                                console.log(`    - The new position is inside because ${currentPosition[0]} is between ${bounds.minX} and ${bounds.maxX}, and ${currentPosition[1]} is between ${bounds.minY} and ${bounds.maxY}.`);
+                            }
                         }
                     });
                 }
@@ -419,9 +422,11 @@ function isPointInPolygon(point, polygon) {
                         if (wasInside && !isInside) {
                             const bounds = getSensorBounds(sensor);
                             console.log(`Patient ${patient.patID} left sensor ${sensor.name}.`);
-                            //console.log(`    - They were inside at (${previousPosition.join(', ')}) and moved outside to (${currentPosition.join(', ')}).`);
-                            //console.log(`    - The sensor area is from x=${bounds.minX} to x=${bounds.maxX} and y=${bounds.minY} to y=${bounds.maxY}.`);
-                            //console.log(`    - The new position is outside because either ${currentPosition[0]} is not between ${bounds.minX} and ${bounds.maxX}, or ${currentPosition[1]} is not between ${bounds.minY} and ${bounds.maxY}.`);
+                            if (simulationDebug) {
+                                console.log(`    - They were inside at (${previousPosition.join(', ')}) and moved outside to (${currentPosition.join(', ')}).`);
+                                console.log(`    - The sensor area is from x=${bounds.minX} to x=${bounds.maxX} and y=${bounds.minY} to y=${bounds.maxY}.`);
+                                console.log(`    - The new position is outside because either ${currentPosition[0]} is not between ${bounds.minX} and ${bounds.maxX}, or ${currentPosition[1]} is not between ${bounds.minY} and ${bounds.maxY}.`);
+                            }
                         }
                     });
                 }
@@ -639,13 +644,17 @@ function isPointInPolygon(point, polygon) {
                         currentTime,
                     });
 
-                    const scatterplotLayer = new deck.ScatterplotLayer({
+                    const scatterplotLayerPatientSteps = new deck.ScatterplotLayer({
                         id: 'scatterplot-layer',
                         data: mapData?.paths.flatMap(p => p.path.map((point, i) => ({ position: point, timestamp: p.timestamps[i] }))),
                         getPosition: d => d.position,
-                        getRadius: d => d.timestamp,
+                        //in case the circle radius is proportional to the spent time in this location
+                        //getRadius: d => d.timestamp,
+                        //in case the circle radius is fixed
+                        getRadius: 130,
                         getFillColor: [255, 0, 0], // color of the points
-                        radiusScale: 0.3,
+                        //in case the circle radius is proportional
+                        //radiusScale: 0.01,
                         radiusMinPixels: 1,
                         radiusMaxPixels: 100
                     });
@@ -670,14 +679,31 @@ function isPointInPolygon(point, polygon) {
                     //    ...iconProps,
                     //    getPosition: d => d.path[currentTime],
                     //  });
+                    if (simulation) {
+                        if (simulationDebug) {
+                            mainDeck.setProps({
+                                layers: [bitmapLayer, tripsLayer, textLayerPatients, scatterplotLayerPatientSteps, sensorLayer, textLayer],
+                            });
+                        } else {
+                            mainDeck.setProps({
+                                layers: [bitmapLayer, tripsLayer, sensorLayer, textLayer],
+                            });
+                        }
+                    }
+                    else {
+                        mainDeck.setProps({
+                            layers: [bitmapLayer, tripsLayer, textLayer],
+                        });
+                    }
 
-                    mainDeck.setProps({
-                        layers: [bitmapLayer, tripsLayer, textLayerPatients, scatterplotLayer, sensorLayer, textLayer],
-                    });
 
                     // Check for patient-sensor collision
                     if (mapData && mapData.paths) {
                         mapData.paths.forEach(patient => {
+                            const currentPosition = patient.path[currentTime];
+                            if (currentPosition) {
+                                console.log(`Patient ${patient.patID} at step ${currentTime}: ${currentPosition.join(', ')}`);
+                            }
                             handleEnteringEvent(patient, sensors, currentTime);
                             handleLeavingEvent(patient, sensors, currentTime);
                         });
