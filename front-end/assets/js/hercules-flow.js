@@ -35,6 +35,14 @@ var url = new URL("https://hercules.cetools.org/v1/");
 url.port = '443';
 const baseURL = url.toString();
 
+// Sensor definitions
+const sensors = [
+    { id: 1, center: [0.05625, 0.07517], radius: 1120, name: 'S1', enteredPatients: new Set(), color: [255, 140, 0] },
+    { id: 2, center: [0.06635, 0.07517], radius: 60, name: 'S2', enteredPatients: new Set(), color: [0, 128, 255] },
+    { id: 3, center: [0.07665, 0.07517], radius: 25, name: 'S3', enteredPatients: new Set(), color: [255, 0, 128] },
+    { id: 4, center: [0.08685, 0.07517], radius: 35, name: 'S4', enteredPatients: new Set(), color: [128, 255, 0] }
+];
+
 const patients1 = ["G0132",
     "G0167",
     "G0501",
@@ -3344,6 +3352,35 @@ const COLOR_RANGE = [
                 shadowEnabled: false,
             };
 
+            const sensorProps = {
+                id: 'sensor-layer',
+                data: sensors,
+                pickable: false,
+                opacity: 0.5,
+                stroked: true,
+                filled: true,
+                radiusScale: 4,
+                radiusMinPixels: 50,
+                radiusMaxPixels: 200,
+                lineWidthMinPixels: 1,
+                getPosition: d => d.center,
+                getRadius: d => d.radius,
+                getFillColor: d => d.color,
+                getLineColor: [255, 0, 0]
+            };
+
+            const textLayerOptions = {
+                id: 'sensor-text-layer',
+                data: sensors,
+                getPosition: d => d.center,
+                getText: d => d.name,
+                getSize: 16,
+                getColor: [0, 0, 0, 255],
+                getAngle: 0,
+                getTextAnchor: 'middle',
+                getAlignmentBaseline: 'center'
+            };
+
             const iconProps = {
                 id: 'IconLayer',
                 data: mapData?.paths,
@@ -3432,14 +3469,43 @@ const COLOR_RANGE = [
                         ...bitmapProps
                     });
 
+                    const sensorLayer = new deck.ScatterplotLayer({
+                        ...sensorProps
+                    });
+
+                    const textLayer = new deck.TextLayer({
+                        ...textLayerOptions
+                    });
+
                     //const iconLayer = new deck.IconLayer({
                     //    ...iconProps,
                     //    getPosition: d => d.path[currentTime],
                     //  });
 
                     mainDeck.setProps({
-                        layers: [bitmapLayer, tripsLayer],
+                        layers: [bitmapLayer, tripsLayer, sensorLayer, textLayer],
                     });
+
+                    // Check for patient-sensor collision
+                    if (mapData && mapData.paths) {
+                        mapData.paths.forEach(patient => {
+                            const patientPosition = patient.path[currentTime];
+                            if (patientPosition) {
+                                sensors.forEach(sensor => {
+                                    const distance = Math.sqrt(
+                                        Math.pow(patientPosition[0] - sensor.center[0], 2) +
+                                        Math.pow(patientPosition[1] - sensor.center[1], 2)
+                                    );
+                                    if (distance < sensor.radius) {
+                                        if (!sensor.enteredPatients.has(patient.patID)) {
+                                            sensor.enteredPatients.add(patient.patID);
+                                            console.log(`Patient ${patient.patID} entered ${sensor.name}. Total patients in ${sensor.name}: ${sensor.enteredPatients.size}`);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
 
                     window.requestAnimationFrame(animate);
                     //console.log("requestAnimationFrame: isAnimating");
@@ -3469,6 +3535,12 @@ const COLOR_RANGE = [
                         new deck.BitmapLayer({
                             bitmapProps
                         }),
+                        new deck.ScatterplotLayer({
+                            ...sensorProps
+                        }),
+                        new deck.TextLayer({
+                            ...textLayerOptions
+                        })
                         //new deck.IconLayer({
                         //    iconProps
                         //  })
