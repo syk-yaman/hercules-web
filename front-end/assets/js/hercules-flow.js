@@ -34,7 +34,9 @@ var isHoveringOnSlider = false;
 var url = new URL("https://hercules.cetools.org/v1/");
 url.port = '443';
 const baseURL = url.toString();
-const maxPatientsLimit = 50; //For simulation purposes.
+
+const maxPatientsLimit = 1; //For simulation purposes, -1 for no limit.
+const simulation = true; //For simulation purposes, false for real-time data.
 
 // Sensor definitions
 const sensors = [
@@ -319,7 +321,9 @@ function isPointInPolygon(point, polygon) {
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.paths) {
-                        data.paths = data.paths.slice(0, maxPatientsLimit);
+                        if (maxPatientsLimit !== -1) {
+                            data.paths = data.paths.slice(0, maxPatientsLimit);
+                        }
                     }
                     callback(data);
                 })
@@ -372,6 +376,38 @@ function isPointInPolygon(point, polygon) {
 
             return result;
         };
+
+        function handleEnteringEvent(patient, sensors, currentTime) {
+            if (currentTime > 0) {
+                const currentPosition = patient.path[currentTime];
+                const previousPosition = patient.path[currentTime - 1];
+                if (currentPosition && previousPosition) {
+                    sensors.forEach(sensor => {
+                        const isInside = isPointInPolygon(currentPosition, sensor.polygon);
+                        const wasInside = isPointInPolygon(previousPosition, sensor.polygon);
+                        if (!wasInside && isInside) {
+                            console.log(`Patient ${patient.patID} entered sensor ${sensor.name} at time ${currentTime}`);
+                        }
+                    });
+                }
+            }
+        }
+
+        function handleLeavingEvent(patient, sensors, currentTime) {
+            if (currentTime > 0) {
+                const currentPosition = patient.path[currentTime];
+                const previousPosition = patient.path[currentTime - 1];
+                if (currentPosition && previousPosition) {
+                    sensors.forEach(sensor => {
+                        const isInside = isPointInPolygon(currentPosition, sensor.polygon);
+                        const wasInside = isPointInPolygon(previousPosition, sensor.polygon);
+                        if (wasInside && !isInside) {
+                            console.log(`Patient ${patient.patID} left sensor ${sensor.name} at time ${currentTime}`);
+                        }
+                    });
+                }
+            }
+        }
 
         function loadMapData(data, individual, experimentName, resetCurrentTime) {
             //By default this causes the playback to reset, except in hiding 
@@ -459,9 +495,9 @@ function isPointInPolygon(point, polygon) {
                 getPath: (d) => d.path,
                 getTimestamps: (d) => d.timestamps,
                 getColor: (d) => individual != null ? VENDOR_COLORS[0] : d.vendor,//d.vendor
-                //opacity: individual!=null? 3 : 0.09,
-                widthMinPixels: individual != null ? 4 : 2.5,
-                trailLength: individual != null ? 3000 : 150,
+                opacity: individual != null ? 3 : simulation ? 6 : 0.09,
+                widthMinPixels: individual != null ? 4 : simulation ? 4 : 2.5,
+                trailLength: individual != null ? 3000 : simulation ? 12000 : 150,
                 currentTime,
                 shadowEnabled: false,
             };
@@ -470,7 +506,7 @@ function isPointInPolygon(point, polygon) {
                 id: 'sensor-layer',
                 data: sensors,
                 pickable: false,
-                opacity: 0.5,
+                opacity: 0.09,
                 stroked: true,
                 filled: true,
                 getPolygon: d => d.polygon,
@@ -530,7 +566,7 @@ function isPointInPolygon(point, polygon) {
                     if (individual != null)
                         currentTime = (currentTime + 1) % LOOP_LENGTH;
                     else
-                        currentTime = (currentTime + 2) % LOOP_LENGTH;
+                        currentTime = (currentTime + 1) % LOOP_LENGTH;
 
                     if (manualTime != -1) {
                         console.log("currentTime MANUAL: " + currentTime);
@@ -598,17 +634,8 @@ function isPointInPolygon(point, polygon) {
                     // Check for patient-sensor collision
                     if (mapData && mapData.paths) {
                         mapData.paths.forEach(patient => {
-                            const patientPosition = patient.path[currentTime];
-                            if (patientPosition) {
-                                sensors.forEach(sensor => {
-                                    if (isPointInPolygon(patientPosition, sensor.polygon)) {
-                                        if (!sensor.enteredPatients.has(patient.patID)) {
-                                            sensor.enteredPatients.add(patient.patID);
-                                            console.log(`Patient ${patient.patID} entered ${sensor.name}. Total patients in ${sensor.name}: ${sensor.enteredPatients.size}`);
-                                        }
-                                    }
-                                });
-                            }
+                            handleEnteringEvent(patient, sensors, currentTime);
+                            handleLeavingEvent(patient, sensors, currentTime);
                         });
                     }
 
