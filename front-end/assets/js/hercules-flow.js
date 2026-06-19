@@ -35,15 +35,15 @@ var url = new URL("https://hercules.cetools.org/v1/");
 url.port = '443';
 const baseURL = url.toString();
 
-const maxPatientsLimit = 2; //For simulation purposes, -1 for no limit.
+const maxPatientsLimit = 100; //For simulation purposes, -1 for no limit.
 const simulation = true; //For simulation purposes, false for real-time data.
 const simulationDebug = false; //For simulation debugging.
 
 // Sensor definitions
 const sensors = [
-    { id: 1, rect: { x: 0.00225, y: 0.14817, width: 0.0852, height: -0.087 }, name: 'S1', enteredPatients: new Set(), color: [255, 140, 0] },
-    //{ id: 2, rect: { x: 0.06535, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S2', enteredPatients: new Set(), color: [0, 128, 255] },
-    //{ id: 3, rect: { x: 0.07565, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S3', enteredPatients: new Set(), color: [255, 0, 128] },
+    { id: 1, rect: { x: 0.00225, y: 0.14817, width: 0.0852, height: -0.087 }, name: 'Node #1', enteredPatients: new Set(), color: [255, 140, 0] },
+    { id: 2, rect: { x: 0.00225, y: 0.06080, width: 0.0852, height: -0.062 }, name: 'Node #2', enteredPatients: new Set(), color: [0, 128, 255] },
+    { id: 3, rect: { x: 0.08825, y: 0.03580, width: 0.1912, height: -0.022 }, name: 'Node #3', enteredPatients: new Set(), color: [255, 0, 128] },
     //{ id: 4, rect: { x: 0.08585, y: 0.07417, width: 0.012, height: 0.002 }, name: 'S4', enteredPatients: new Set(), color: [128, 255, 0] }
 ].map(sensor => {
     const { x, y, width, height } = sensor.rect;
@@ -398,6 +398,7 @@ function isPointInPolygon(point, polygon) {
                         const isInside = isPointInPolygon(currentPosition, sensor.polygon);
                         const wasInside = isPointInPolygon(previousPosition, sensor.polygon);
                         if (!wasInside && isInside) {
+                            console.log(`${Math.round((currentTime / 32) * 60)},${patient.patID},enter,${sensor.name}`);
                             const bounds = getSensorBounds(sensor);
                             //console.log(`Patient ${patient.patID} entered sensor ${sensor.name}.`);
                             if (simulationDebug) {
@@ -420,6 +421,7 @@ function isPointInPolygon(point, polygon) {
                         const isInside = isPointInPolygon(currentPosition, sensor.polygon);
                         const wasInside = isPointInPolygon(previousPosition, sensor.polygon);
                         if (wasInside && !isInside) {
+                            console.log(`${Math.round((currentTime / 32) * 60)},${patient.patID},leave,${sensor.name}`);
                             const bounds = getSensorBounds(sensor);
                             //console.log(`Patient ${patient.patID} left sensor ${sensor.name}.`);
                             if (simulationDebug) {
@@ -520,8 +522,8 @@ function isPointInPolygon(point, polygon) {
                 getTimestamps: (d) => d.timestamps,
                 getColor: (d) => individual != null ? VENDOR_COLORS[0] : d.vendor,//d.vendor
                 opacity: individual != null ? 3 : simulation ? 6 : 0.09,
-                widthMinPixels: individual != null ? 4 : simulation ? 4 : 2.5,
-                trailLength: individual != null ? 3000 : simulation ? 12000 : 150,
+                widthMinPixels: individual != null ? 4 : simulation ? 3 : 2.5,
+                trailLength: individual != null ? 3000 : simulation ? 1000 : 150,
                 currentTime,
                 shadowEnabled: false,
             };
@@ -530,7 +532,7 @@ function isPointInPolygon(point, polygon) {
                 id: 'sensor-layer',
                 data: sensors,
                 pickable: false,
-                opacity: 0.09,
+                opacity: 0.2,
                 stroked: true,
                 filled: true,
                 getPolygon: d => d.polygon,
@@ -543,8 +545,8 @@ function isPointInPolygon(point, polygon) {
                 data: sensors,
                 getPosition: d => d.center,
                 getText: d => d.name,
-                getSize: 16,
-                getColor: [0, 0, 0, 255],
+                getSize: 40,
+                getColor: [255, 255, 255, 255],
                 getAngle: 0,
                 getTextAnchor: 'middle',
                 getAlignmentBaseline: 'center'
@@ -702,7 +704,7 @@ function isPointInPolygon(point, polygon) {
                         mapData.paths.forEach(patient => {
                             const currentPosition = patient.path[currentTime];
                             if (currentPosition) {
-                                console.log(`Patient ${patient.patID} at step ${currentTime}: ${currentPosition.join(', ')}`);
+                                //console.log(`Patient ${patient.patID} at step ${currentTime}: ${currentPosition.join(', ')}`);
                             }
                             handleEnteringEvent(patient, sensors, currentTime);
                             handleLeavingEvent(patient, sensors, currentTime);
